@@ -1,4 +1,4 @@
-import { type DB } from "./db";
+import type { DB } from "./db";
 import * as dbModule from "./db";
 
 let db: DB | null = null;
@@ -11,12 +11,20 @@ export interface Todo {
 	updated_at: number;
 }
 
+export type Scalar =
+	| string
+	| number
+	| boolean
+	| null
+	| ArrayBuffer
+	| ArrayBufferView;
+
 // CR-SQLite change object interface
 export interface CRSQLChange {
 	table: string;
 	pk: string | Uint8Array;
 	cid: string;
-	val: unknown;
+	val: Scalar;
 	col_version: number;
 	db_version: number;
 	site_id: Uint8Array;
@@ -84,7 +92,7 @@ export const addTodo = async (text: string): Promise<string> => {
 	const now = Math.floor(Date.now() / 1000);
 	await getDatabase().execute(
 		"INSERT INTO todos (id, text, created_at, updated_at) VALUES (?, ?, ?, ?)",
-		[id, text, now, now]
+		[id, text, now, now],
 	);
 	return id;
 };
@@ -109,7 +117,9 @@ export const deleteTodo = async (id: string): Promise<void> => {
 };
 
 // Sync operations
-export const getChanges = async (sinceVersion: number = 0): Promise<CRSQLChange[]> => {
+export const getChanges = async (
+	sinceVersion: number = 0,
+): Promise<CRSQLChange[]> => {
 	const result = await getDatabase().execute(
 		`SELECT * FROM crsql_changes WHERE db_version > ?`,
 		[sinceVersion],
